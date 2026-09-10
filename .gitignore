@@ -1,0 +1,17 @@
+__pycache__
+.DS_Store
+
+.env
+
+options.json
+
+bms_meter_states.json
+
+/bat_*.json
+
+/venv
+tools/impedance/influxdb_*.json
+
+user_id
+
+*.pickle

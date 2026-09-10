@@ -1,0 +1,142 @@
+name: "Batmon"
+description: "Monitor various BMS over bluetooth"
+url: https://github.com/fl4p/batmon-ha
+version: "2.20.5-jkcfg"
+slug: "batmon"
+init: false
+host_dbus: true
+apparmor: true
+
+# Runtime access for the non-D-Bus BLE stacks (ble_stack: bumble | bluek):
+#  - host_network: REQUIRED. AF_BLUETOOTH/HCI/L2CAP sockets are bound to the host
+#    network namespace; without it the container gets EAFNOSUPPORT. (Verified in
+#    an addon container: the supervisor/core API and MQTT still work with it on.)
+#  - privileged NET_ADMIN (mgmt control channel / HCI User Channel) and
+#    NET_RAW (raw HCI + L2CAP sockets).
+# All harmless when ble_stack: bleak (default); host_dbus stays for the BlueZ
+# pairing pre-step (and bluek's bluetoothctl pairing). NOTE: "bumble" takes the
+# adapter EXCLUSIVELY (brings it down), removing it from the HA Bluetooth pool —
+# dedicate an adapter to it. "bluek" talks to the kernel BlueZ stack over
+# sockets and does NOT take the adapter down, so it coexists with bluetoothd/HA.
+host_network: true
+privileged:
+  - NET_ADMIN
+  - NET_RAW
+
+# Map host serial/UART devices (/dev/ttyUSB*, /dev/ttyACM*, /dev/ttyAMA*, and
+# their stable /dev/serial/by-id/* symlinks) into the container, for wired BMSes
+# (address: serial, e.g. type: jk_uart / daly_uart). HA's `privileged:` above is
+# only a capability list — it does NOT expose device nodes — so without `uart:`
+# the serial port the user configures simply isn't visible inside the add-on.
+uart: true
+
+homeassistant_api: true # http://supervisor/core/api
+hassio_api: true        # http://supervisor
+
+# watchdog: true # todo  https://developers.home-assistant.io/docs/add-ons/configuration/
+
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+
+services:
+  - mqtt:need
+
+discovery:
+  - mqtt
+
+
+options:
+  devices:
+    - address: D6:6C:0A:61:14:30
+      type: sok
+      alias: battery1
+  keep_alive: true
+  sample_period: 1.0
+  publish_period: 1.0
+  invert_current: true
+  watchdog: true
+  expire_values_after: 20
+  bt_power_cycle: false
+  bt_power_cycle_on_error: false
+  ble_stack: bleak
+  # sample_period/publish_period/expire_values_after are kept here (and required
+  # in the schema) so they render as normal, always-visible fields. They must NOT
+  # live in the collapsed "unused optional configuration options" section: edits
+  # made there are dropped by the HA frontend on save (see issue #225). Only the
+  # rarely-tuned concurrent_sampling/verbose_log stay optional + collapsed.
+  # Code defaults: concurrent_sampling=false, verbose_log=false.
+  # bluetooth_proxies: only consulted when ble_stack: esphome. Example:
+  #   bluetooth_proxies:
+  #     - host: 192.168.1.42
+  #       noise_psk: "base64-encoded-encryption-key"
+  #       name: "garage-proxy"
+  bluetooth_proxies: []
+  telemetry: true
+
+schema:
+  devices:
+    - alias: "str?"
+      address: str
+      type: str
+      debug: "bool?"
+      pin: "str?"
+      adapter: "str?"
+      algorithm: "str?"
+      current_calibration: "float?"
+      note: "str?"
+
+  mqtt_user: "str?"
+  mqtt_password: "str?"
+  mqtt_broker: "str?"
+  mqtt_port: "int(1,65535)?"
+
+  invert_current: "bool"
+  keep_alive: "bool"
+  watchdog: "bool"
+
+  sample_period: "float"
+  publish_period: "float"
+  expire_values_after: "float"
+
+  # Advanced (optional -> collapsed in the UI until set):
+  concurrent_sampling: "bool?"
+  verbose_log: "bool?"
+
+  bt_power_cycle: "bool?"
+
+  # Last-resort recovery: power-cycle the controller when reconnecting one BMS
+  # keeps failing. Drops every BLE connection, so it stays off by default and is
+  # rate-limited to one cycle per BT_POWER_CYCLE_MIN_INTERVAL (bmslib/sampling.py).
+  bt_power_cycle_on_error: "bool?"
+
+  # Drop each keep_alive BLE link every N minutes (+/-20% jitter) so the next
+  # connect re-picks the backend/proxy. Only useful with several esphome
+  # proxies; each reconnect costs a few seconds of data. 0/unset = off.
+  reconnect_interval_minutes: "float?"
+
+  # "bleak" = stock BlueZ/D-Bus stack (default); "bumble" = bumble-bleak
+  # (pure-Python HCI, no BlueZ/D-Bus) which takes exclusive ownership of the
+  # adapter(s) it uses (brings them down), so they leave the HA Bluetooth pool;
+  # "bluek" talks to the kernel BlueZ stack over L2CAP/mgmt sockets (no D-Bus)
+  # and coexists with bluetoothd — the adapter stays in the HA pool;
+  # "esphome" routes GATT through one or more ESPHome Bluetooth Proxy devices
+  # (no local adapter touched — see `bluetooth_proxies:`).
+  ble_stack: "list(bleak|bumble|bluek|esphome)?"
+
+  bluetooth_proxies:
+    - host: str
+      noise_psk: "str?"
+      name: "str?"
+
+  influxdb_host: "str?"
+  influxdb_username: "str?"
+  influxdb_password: "str?"
+  influxdb_ssl: "bool?"
+  influxdb_verify_ssl: "bool?"
+  influxdb_database: "str?"
+
+  telemetry: "bool?"

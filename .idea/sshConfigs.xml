@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="192.168.178.28" id="5561820a-d484-47e8-b8df-523f56e5bd68" port="22" nameFormat="DESCRIPTIVE" username="alarm" useOpenSSHConfig="true" />
+      <sshConfig authType="PASSWORD" host="havan.local" id="4924429d-d788-47ef-8ae8-c9be5d4ae809" port="22" nameFormat="DESCRIPTIVE" username="fab" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>
