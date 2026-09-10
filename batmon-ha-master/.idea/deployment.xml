@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="havan" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+    <option name="confirmBeforeUploading" value="false" />
+    <serverData>
+      <paths name="havan">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/batmon-ha" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="tools" />
+            <excludedPath local="true" path="$PROJECT_DIR$/tools" />
+            <excludedPath path="options.json" />
+            <excludedPath path=".github" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="rpi ha zerotier">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/batmon-ha" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="tools" />
+            <excludedPath local="true" path="$PROJECT_DIR$/tools" />
+            <excludedPath path="options.json" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="rpi-havan-fab">
+        <serverdata>
+          <mappings>
+            <mapping deploy="batmon-ha" local="$PROJECT_DIR$" web="/batmon-ha" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
