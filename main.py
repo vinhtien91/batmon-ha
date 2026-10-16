@@ -281,6 +281,11 @@ async def main():
         # and the watchdog exits after 300 s without ever naming the cause (#269).
         mqtt_connected = threading.Event()
 
+        # Register the JK BLE Restart button on every MQTT reconnect.
+        # We use the exact topic prefix of the existing BmsSampler.
+        from bmslib.mqtt_util import subscribe_restart_bms
+        from bmslib.models.jk import JKBt
+
         def _on_connect(client, userdata, flags, reason_code, properties):
             if reason_code.is_failure:
                 logger.error("MQTT broker %s refused the connection: %s. Check mqtt_user/mqtt_password "
@@ -289,6 +294,12 @@ async def main():
             else:
                 logger.info("mqtt connected to %s", user_config.mqtt_broker)
                 mqtt_connected.set()
+                import re
+                for jk_device in bms_list:
+                    if isinstance(jk_device, JKBt):
+                        topic_prefix = re.sub(r'[^\w_.-/]', '_', jk_device.name)
+                        subscribe_restart_bms(client, topic_prefix, jk_device)
+
 
         def _on_disconnect(client, userdata, flags, reason_code, properties):
             # a refused CONNACK is followed by a disconnect too; only report
