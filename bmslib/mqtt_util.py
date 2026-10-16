@@ -603,10 +603,53 @@ def publish_hass_discovery(client, device_topic, expire_after_seconds: int, samp
             remove_none_values(dm)
             discovery_msg[f"homeassistant/number/{node_id}/cfg_{name}/config"] = dm
 
+    # Publish the restart button only if main.py explicitly registered
+    # this device as a JK BLE driver with a hardware restart command.
+    if device_topic in _restart_enabled_topics:
+        discovery_msg[f"homeassistant/button/{node_id}/restart_bms/config"] = {
+            "unique_id": f"{device_topic}__restart_bms",
+            "name": "Restart JK BMS",
+            "entity_category": "config",
+            "icon": "mdi:restart",
+            "command_topic": f"homeassistant/button/{node_id}/restart_bms/press",
+            "payload_press": "PRESS",
+            "device": device_json,
+        }
+
     for topic, data in discovery_msg.items():
         j = json.dumps(data)
         logger.debug('discovery msg %s: %s', topic, j)
         mqtt_single_out(client, topic, j)
+
+
+_restart_enabled_topics = set()
+_restart_last_request = {}
+
+
+def subscribe_restart_bms(mqtt_client: paho.Client, device_topic: str, bms: BtBms):
+    """Register a hardware restart button for the verified JK BLE driver."""
+    if not hasattr(bms, 'restart_bms'):
+        return
+    _restart_enabled_topics.add(device_topic)
+    node_id = device_topic.replace('/', '_')
+    topic = f"homeassistant/button/{node_id}/restart_bms/press"
+
+    async def do_restart(payload: str):
+        if payload != 'PRESS':
+            logger.warning('Ignored unexpected JK restart payload for %s', bms.name)
+            return
+        now = time.monotonic()
+        if now - _restart_last_request.get(device_topic, -1e9) < 60:
+            logger.warning('JK BMS %s restart rate-limited (60 s)', bms.name)
+            return
+        _restart_last_request[device_topic] = now
+        logger.warning('JK BMS hardware restart requested: %s', bms.name)
+        await bms.restart_bms()
+        logger.warning('JK BMS restart frame sent: %s (BLE may disconnect)', bms.name)
+
+    mqtt_client.subscribe(topic, qos=1)
+    _switch_callbacks[topic] = do_restart
+    logger.info('Subscribed hardware restart button: %s', topic)
 
 
 _switch_callbacks = {}
@@ -702,4 +745,3 @@ def paho_monkey_patch():
     paho.Client._handle_pingresp = _handle_pingresp
 
     logger.debug("applied paho monkey patch _handle_pingresp")
-
