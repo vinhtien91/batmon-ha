@@ -284,7 +284,7 @@ async def main():
         # Register the JK BLE Restart button on every MQTT reconnect.
         # We use the exact topic prefix of the existing BmsSampler.
         from bmslib.mqtt_util import subscribe_restart_bms
-        from bmslib.models.jk import JKBt
+        from bmslib.models.jikong import JKBt
 
         def _on_connect(client, userdata, flags, reason_code, properties):
             if reason_code.is_failure:
