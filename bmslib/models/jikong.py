@@ -501,6 +501,22 @@ class JKBt(BtBms):
         self._resp_table.pop(0x01, None)  # invalidate settings frame which stores switch states
         # await asyncio.sleep(0.2)  # not sure if this is needed
 
+    async def restart_bms(self):
+        """Hardware restart using JK02_32S BLE register 0x66 (zero data bytes).
+
+        The BMS may immediately disconnect as a normal consequence of restart.
+        Do not use this method for BLE reconnection or host/ESP restart.
+        """
+        if not self.is_new_11fw_32s:
+            raise NotImplementedError(
+                "Hardware restart is enabled only for verified JK02_32S (fw >= 11)"
+            )
+        if self.char_handle_write is None or self.client is None or not self.client.is_connected:
+            raise ConnectionError("JK BMS is not connected through BLE")
+        self.logger.warning("Sending hardware Restart command 0x66 to %s", self.name)
+        await self._write(0x66, [])
+        # Expect possible immediate BLE disconnect and let normal sampling reconnect.
+
     def supports_set_soc(self) -> bool:
         # register 0x6E exists in the JK02_32S protocol only (fw >= 11), see syssi/esphome-jk-bms
         # components/jk_bms_ble/number/__init__.py CONF_SOC_CALIBRATION (#144)
@@ -714,4 +730,3 @@ class JKBt_32s(JKBt):
 
 if __name__ == '__main__':
     asyncio.run(main())
-
